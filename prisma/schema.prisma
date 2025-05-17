@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  ACCOUNTANT
+  STAFF
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          UserRole  @default(STAFF)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  expenses      Expense[]
+  invoices      Invoice[]
+  customers     Customer[]
+  staff         Staff[]
+}
+
+model Customer {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  address       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  invoices      Invoice[]
+  installments  Installment[]
+  createdBy     User      @relation(fields: [userId], references: [id])
+  userId        String
+}
+
+model Expense {
+  id            String    @id @default(cuid())
+  amount        Float
+  description   String
+  date          DateTime
+  category      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     User      @relation(fields: [userId], references: [id])
+  userId        String
+}
+
+model Invoice {
+  id            String    @id @default(cuid())
+  number        String    @unique
+  amount        Float
+  status        InvoiceStatus @default(DRAFT)
+  dueDate       DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  customerId    String
+  createdBy     User      @relation(fields: [userId], references: [id])
+  userId        String
+  installments  Installment[]
+  isRecurring   Boolean   @default(false)
+  recurringInterval String? // e.g., "monthly", "quarterly", "yearly"
+  nextRecurringDate DateTime?
+}
+
+model Installment {
+  id            String    @id @default(cuid())
+  amount        Float
+  dueDate       DateTime
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  invoice       Invoice   @relation(fields: [invoiceId], references: [id])
+  invoiceId     String
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  customerId    String
+}
+
+model Staff {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  position      String
+  salary        Float
+  joinDate      DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     User      @relation(fields: [userId], references: [id])
+  userId        String
+}
+
+model InvoiceTemplate {
+  id            String    @id @default(cuid())
+  name          String
+  content       String    // HTML template
+  isDefault     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+} 
